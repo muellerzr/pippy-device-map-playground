@@ -15,7 +15,9 @@ from pippy.PipelineStage import PipelineStage
 
 from transformers import T5ForConditionalGeneration, T5Config
 
-from hf_utils import generate_inputs_for_model, get_number_of_params
+
+def get_number_of_params(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 def add_split_points(t5, nranks):
@@ -60,8 +62,17 @@ def run(args):
         print(t5)
 
     # Input configs
-    example_inputs = generate_inputs_for_model(
-        model_class, t5, model_name, args.batch_size, args.device)
+    # Create example inputs for the model
+    input = torch.randint(
+        low=0,
+        high=config.vocab_size,
+        size = (2, 1024), # bs x seq_len
+        device=args.device,
+        dtype=torch.int64,
+        requires_grad=False,
+    )
+
+    example_inputs = {"input_ids": input, "decoder_input_ids": input}
 
     # Annotate split points
     add_split_points(t5, args.world_size)

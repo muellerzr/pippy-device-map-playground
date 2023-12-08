@@ -1,13 +1,12 @@
 # Attempting to use `pippy` with `bert` and `accelerate`'s `infer_device_map`
 import math
+import torch
 from accelerate import infer_auto_device_map, PartialState
 from accelerate.utils import calculate_maximum_sizes, convert_bytes
 from transformers import T5ForConditionalGeneration, T5Config
 
 from pippy.IR import Pipe, PipeSplitWrapper, annotate_split_points
 from pippy.PipelineStage import PipelineStage
-
-from hf_utils import generate_inputs_for_model
 
 # Generate a distributed environment
 state = PartialState()
@@ -43,9 +42,16 @@ split_point = next(k for k, v in device_map.items() if v == 1)
 annotate_split_points(model, {split_point: PipeSplitWrapper.SplitPoint.BEGINNING})
 
 # Create example inputs for the model
-example_inputs = generate_inputs_for_model(
-    T5ForConditionalGeneration, model, "T5ForConditionalGeneration", 2, state.device
+input = torch.randint(
+    low=0,
+    high=config.vocab_size,
+    size = (2, 1024), # bs x seq_len
+    device=state.device,
+    dtype=torch.int64,
+    requires_grad=False,
 )
+
+example_inputs = {"input_ids": input, "decoder_input_ids": input}
 
 # Move model to `device` and set to evaluation
 model.to(state.device)

@@ -4,7 +4,6 @@
 from transformers import T5ForConditionalGeneration, T5Config
 from accelerate import infer_auto_device_map, dispatch_model
 from accelerate.utils import calculate_maximum_sizes, convert_bytes
-from hf_utils import generate_inputs_for_model
 import math
 
 config = T5Config()
@@ -30,15 +29,21 @@ model = dispatch_model(model, device_map)
 
 model.eval()
 
-example_inputs = [
-        generate_inputs_for_model(
-        T5ForConditionalGeneration, model, "T5ForConditionalGeneration", 1, "cuda:0"
-    ),
-    generate_inputs_for_model(
-        T5ForConditionalGeneration, model, "T5ForConditionalGeneration", 1, "cuda:0"
-    ),
-    
-]
+example_inputs = []
+
+# Create example inputs for the model
+input = torch.randint(
+    low=0,
+    high=config.vocab_size,
+    size = (1, 1024), # bs x seq_len
+    device="cuda",
+    dtype=torch.int64,
+    requires_grad=False,
+)
+
+example_inputs = {"input_ids": input, "decoder_input_ids": input}
+
+example_inputs = [example_inputs, example_inputs]
 
 
 import time
