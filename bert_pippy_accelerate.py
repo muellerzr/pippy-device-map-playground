@@ -1,5 +1,7 @@
 # Attempting to use `pippy` with `bert` and `accelerate`'s `infer_device_map`
+import math
 from accelerate import infer_auto_device_map, PartialState
+from accelerate.utils import calculate_maximum_sizes, convert_bytes
 from transformers import T5ForConditionalGeneration, T5Config
 
 from pippy.IR import Pipe, PipeSplitWrapper, annotate_split_points
@@ -14,9 +16,27 @@ state = PartialState()
 config = T5Config()
 model = T5ForConditionalGeneration(config)
 
-# Create a device map which roughly splits the model in half on each device
-device_map = infer_auto_device_map(model, max_memory={0: "0.2GB", 1: "0.2GB"}, no_split_module_classes=["T5Block"])
-# Split points occur at device boundaries, such as `encoder.block.5`
+model_size, shared = calculate_maximum_sizes(model)
+# Returns 242026496, (65798144, ['shared'])
+
+# Split in half for two devices
+memory = (model_size + shared[0]) / 2
+memory = convert_bytes(memory)
+# Returns 115.41 MB
+value, ending = memory.split(' ')
+
+# Add a chunk to deal with err:
+# cannot access free variable 'chunk_args_list' where it is not associated with a value in enclosing scope
+memory = math.ceil(float(value)) * 1.1
+memory = f'{memory} {ending}'
+device_map = infer_auto_device_map(
+    model, 
+    max_memory={0: memory, 1: memory}, 
+    no_split_module_classes=["T5Block"], 
+    clean_result=False,
+)
+
+# Should be `decoder.block0`
 split_point = next(k for k, v in device_map.items() if v == 1)
 
 # Create split points for the model based on the device map
@@ -39,6 +59,12 @@ t5_pipe = Pipe.from_tracing(
     example_kwargs=example_inputs,
 )
 
+if state.is_main_process:
+    def get_number_of_params(model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
+    for i, sm in enumerate(t5_pipe.split_gm.children()):
+        print(f"Pipeline stage {i} {get_number_of_params(sm) // 10 ** 6}M params")
+
 # Verify we created two stages
 # Create schedule runtime
 stage = PipelineStage(
@@ -55,12 +81,17 @@ else:
 # Run
 import torch
 import time
-start_time = time.time()
-with torch.no_grad():
-    output = stage(*args)
-end_time = time.time()
+# Take an average of 5 times
+times = []
+for _ in range(5):
+    start_time = time.time()
+    with torch.no_grad():
+        output = stage(*args)
+    end_time = time.time()
+    times.append(end_time - start_time)
 
 # First `n` values in output are the model outputs
 if output is not None:
     output = torch.stack(tuple(output[0]))
-    print(f'Total elapsed time: {end_time - start_time}')
+    print(f'Time of first pass: {times[0]}')
+    print(f'Total elapsed time: {sum(times[1:]) / len(times[1:])}')

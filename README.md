@@ -22,6 +22,7 @@ the model evenly between each GPU
 
 ### BERT
 
-|  | Accelerate/Sequential | PiPPy Example | PiPPy + Accelerate |
+| Time Elapsed (s) | Accelerate/Sequential | PiPPy Example | PiPPy + Accelerate (automated) |
 |---|---|---|---|
-| Time Elapsed (s) | 0.2917 | 0.2157 | 0.1885 |
+| First batch | 0.2986 | 0.2313 | 0.299 |
+| Avg for the rest | 0.03167 | 0.0132 |  |

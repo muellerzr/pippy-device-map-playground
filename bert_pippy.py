@@ -87,17 +87,21 @@ def run(args):
 
     # Run
     import time
-    start_time = time.time()
-    if args.rank == 0:
-        stage(example_inputs["input_ids"], example_inputs["decoder_input_ids"])
-    elif args.rank == args.world_size - 1:
-        out = stage()
-    else:
-        stage()
-    end_time = time.time()
+    times = []
+    for _ in range(5):
+        start_time = time.time()
+        if args.rank == 0:
+            stage(example_inputs["input_ids"], example_inputs["decoder_input_ids"])
+        elif args.rank == args.world_size - 1:
+            out = stage()
+        else:
+            stage()
+        end_time = time.time()
+        times.append(end_time - start_time)
 
     if args.rank == args.world_size - 1:
-        print(f'Total elapsed time: {end_time - start_time}')
+        print(f'Time of first pass: {times[0]}')
+        print(f'Total elapsed time: {sum(times[1:]) / len(times[1:])}')
 
 
 if __name__ == "__main__":
