@@ -13,12 +13,10 @@ config = BertConfig()
 model = BertForMaskedLM(config)
 
 model_size, shared = calculate_maximum_sizes(model)
-# Returns 242026496, (65798144, ['shared'])
 
 # Split in half for two devices
 memory = (model_size + shared[0]) / 2
 memory = convert_bytes(memory)
-# Returns 115.41 MB
 value, ending = memory.split(" ")
 
 # Add a chunk to deal with err:

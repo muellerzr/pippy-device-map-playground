@@ -15,6 +15,9 @@ from pippy.IR import Pipe, PipeSplitWrapper, annotate_split_points
 from pippy.PipelineStage import PipelineStage
 
 from transformers import T5ForConditionalGeneration, T5Config
+from accelerate.utils import set_seed
+
+set_seed(42)
 
 
 def get_number_of_params(model):
@@ -136,6 +139,7 @@ def run(args):
     if args.rank == args.world_size - 1:
         print(f"Time of first pass: {first_batch}")
         print(f"Average time per batch: {(end_time - start_time)/5}")
+        output = torch.stack(tuple(out[0]))
 
 
 if __name__ == "__main__":

@@ -3,12 +3,13 @@ import math
 import time
 import torch
 from accelerate import infer_auto_device_map, PartialState
-from accelerate.utils import calculate_maximum_sizes, convert_bytes
+from accelerate.utils import calculate_maximum_sizes, convert_bytes, set_seed
 from transformers import T5ForConditionalGeneration, T5Config
 
 from pippy.IR import Pipe, PipeSplitWrapper, annotate_split_points
 from pippy.PipelineStage import PipelineStage
 
+set_seed(42)
 # Generate a distributed environment
 state = PartialState()
 
@@ -17,12 +18,10 @@ config = T5Config()
 model = T5ForConditionalGeneration(config)
 
 model_size, shared = calculate_maximum_sizes(model)
-# Returns 242026496, (65798144, ['shared'])
 
 # Split in half for two devices
 memory = (model_size + shared[0]) / 2
 memory = convert_bytes(memory)
-# Returns 115.41 MB
 value, ending = memory.split(" ")
 
 # Add a chunk to deal with err:
@@ -36,7 +35,6 @@ device_map = infer_auto_device_map(
     clean_result=False,
 )
 
-# Should be `decoder.block0`
 split_point = next(k for k, v in device_map.items() if v == 1)
 
 # Create split points for the model based on the device map
