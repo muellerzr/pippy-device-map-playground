@@ -91,10 +91,14 @@ else:
 
 # Take an average of 5 times
 times = []
-for _ in range(5):
+for i in range(10):
+    if i > 5:
+        torch.cuda.synchronize()
     start_time = time.time()
     with torch.no_grad():
         output = stage(args)
+    if i > 5:
+        torch.cuda.synchronize()
     end_time = time.time()
     times.append(end_time - start_time)
 
@@ -102,4 +106,4 @@ for _ in range(5):
 if output is not None:
     output = torch.stack(tuple(output[0]))
     print(f"Time of first pass: {times[0]}")
-    print(f"Total elapsed time: {sum(times[1:]) / len(times[1:])}")
+    print(f"Total elapsed time: {sum(times[5:]) / len(times[5:])}")

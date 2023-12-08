@@ -87,21 +87,27 @@ def run(args):
 
     # Run
 
+
     times = []
-    for _ in range(5):
+    for i in range(10):
+        if i > 5:
+            torch.cuda.synchronize()
         start_time = time.time()
-        if args.rank == 0:
-            stage(example_inputs["input_ids"])
-        elif args.rank == args.world_size - 1:
-            out = stage()
-        else:
-            stage()
+        with torch.no_grad():
+            if args.rank == 0:
+                stage(example_inputs["input_ids"])
+            elif args.rank == args.world_size - 1:
+                out = stage()
+            else:
+                stage()
+        if i > 5:
+            torch.cuda.synchronize()
         end_time = time.time()
         times.append(end_time - start_time)
 
     if args.rank == args.world_size - 1:
         print(f"Time of first pass: {times[0]}")
-        print(f"Total elapsed time: {sum(times[1:]) / len(times[1:])}")
+        print(f"Total elapsed time: {sum(times[5:]) / len(times[5:])}")
 
 
 if __name__ == "__main__":
