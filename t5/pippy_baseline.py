@@ -106,12 +106,23 @@ def run(args):
     )
 
     # Run
+    # Measure first batch
+    torch.cuda.synchronize()
+    start_time = time.time()
+    with torch.no_grad():
+        if args.rank == 0:
+            stage(example_inputs["input_ids"], example_inputs["decoder_input_ids"])
+        elif args.rank == args.world_size - 1:
+            out = stage()
+        else:
+            stage()
+    torch.cuda.synchronize()
+    end_time = time.time()
+    first_batch = end_time - start_time
 
-    times = []
-    for i in range(10):
-        if i > 5:
-            torch.cuda.synchronize()
-        start_time = time.time()
+    torch.cuda.synchronize()
+    start_time = time.time()
+    for i in range(5):
         with torch.no_grad():
             if args.rank == 0:
                 stage(example_inputs["input_ids"], example_inputs["decoder_input_ids"])
@@ -119,14 +130,12 @@ def run(args):
                 out = stage()
             else:
                 stage()
-        if i > 5:
-            torch.cuda.synchronize()
-        end_time = time.time()
-        times.append(end_time - start_time)
+    torch.cuda.synchronize()
+    end_time = time.time()
 
     if args.rank == args.world_size - 1:
-        print(f"Time of first pass: {times[0]}")
-        print(f"Total elapsed time: {sum(times[5:]) / len(times[5:])}")
+        print(f"Time of first pass: {first_batch}")
+        print(f"Average time per batch: {(end_time - start_time)/5}")
 
 
 if __name__ == "__main__":

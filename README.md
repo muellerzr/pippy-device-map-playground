@@ -24,19 +24,19 @@ the model evenly between each GPU
 
 | Time Elapsed (s) | Accelerate/Sequential | PiPPy Example | PiPPy + Accelerate (automated) |
 |---|---|---|---|
-| First batch | 0.2478 | 0.2718 | 0.1704 |
-| Avg for the rest | 0.0108 | 0.00415 | 0.00549 |
+| First batch | 0.2478 | 0.1732 | 0.1743 |
+| Avg for five following | 0.0108 | 0.0022 | 0.0064 |
 
 ### GPT2
 
 | Time Elapsed (s) | Accelerate/Sequential | PiPPy Example | PiPPy + Accelerate (automated) |
 |---|---|---|---|
-| First batch | 0.2745 | 0.2209 | 0.2212 |
-| Avg for the rest | 0.0341 | 0.0118 | 0.0135 |
+| First batch | 0.2745 | 0.2146 | 0.2216 |
+| Avg for five following | 0.0341 | 0.0117 | 0.0136 |
 
 ### T5
 
 | Time Elapsed (s) | Accelerate/Sequential | PiPPy Example | PiPPy + Accelerate (automated) |
 |---|---|---|---|
-| First batch | 0.2986 | 0.2478 | 0.2021 |
-| Avg for the rest | 0.03167 | 0.0146 | 0.0167 |
+| First batch | 0.2986 | 0.1961 | 0.2608 |
+| Avg for five following | 0.03167 | 0.01056 | 0.0167 |

@@ -87,23 +87,28 @@ if state.is_local_main_process:
 else:
     args = None
 
-# Run
-
 # Take an average of 5 times
-times = []
-for i in range(10):
-    if i > 5:
-        torch.cuda.synchronize()
-    start_time = time.time()
+# Measure first batch
+torch.cuda.synchronize()
+start_time = time.time()
+with torch.no_grad():
+    output = stage(args)
+torch.cuda.synchronize()
+end_time = time.time()
+first_batch = end_time - start_time
+
+# Now that CUDA is init, measure after
+torch.cuda.synchronize()
+start_time = time.time()
+for i in range(5):
     with torch.no_grad():
         output = stage(args)
-    if i > 5:
-        torch.cuda.synchronize()
-    end_time = time.time()
-    times.append(end_time - start_time)
+torch.cuda.synchronize()
+end_time = time.time()
 
 # First `n` values in output are the model outputs
 if output is not None:
     output = torch.stack(tuple(output[0]))
-    print(f"Time of first pass: {times[0]}")
-    print(f"Total elapsed time: {sum(times[5:]) / len(times[5:])}")
+    print(f"Time of first pass: {first_batch}")
+    print(f"Average time per batch: {(end_time - start_time)/5}")
+
