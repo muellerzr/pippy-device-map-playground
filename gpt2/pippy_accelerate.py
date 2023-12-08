@@ -4,7 +4,7 @@ import time
 import torch
 from accelerate import infer_auto_device_map, PartialState
 from accelerate.utils import calculate_maximum_sizes, convert_bytes
-from transformers import T5ForConditionalGeneration, T5Config
+from transformers import GPT2ForSequenceClassification, GPT2Config
 
 from pippy.IR import Pipe, PipeSplitWrapper, annotate_split_points
 from pippy.PipelineStage import PipelineStage
@@ -13,8 +13,8 @@ from pippy.PipelineStage import PipelineStage
 state = PartialState()
 
 # Create a blank model
-config = T5Config()
-model = T5ForConditionalGeneration(config)
+config = GPT2Config()
+model = GPT2ForSequenceClassification(config)
 
 model_size, shared = calculate_maximum_sizes(model)
 # Returns 242026496, (65798144, ['shared'])
@@ -32,16 +32,16 @@ memory = f"{memory} {ending}"
 device_map = infer_auto_device_map(
     model,
     max_memory={0: memory, 1: memory},
-    no_split_module_classes=["T5Block"],
     clean_result=False,
+    no_split_module_classes=model._no_split_modules,
 )
 
-# Should be `decoder.block0`
 split_point = next(k for k, v in device_map.items() if v == 1)
 
 # Create split points for the model based on the device map
 annotate_split_points(model, {split_point: PipeSplitWrapper.SplitPoint.BEGINNING})
 
+# Input configs
 # Create example inputs for the model
 input = torch.randint(
     low=0,
@@ -52,18 +52,18 @@ input = torch.randint(
     requires_grad=False,
 )
 
-example_inputs = {"input_ids": input, "decoder_input_ids": input}
+example_inputs = {"input_ids": input}
+input_ids = example_inputs["input_ids"]
 
 # Move model to `device` and set to evaluation
 model.to(state.device)
 model.eval()
 
 # Create a pipeline stage from the model
-t5_pipe = Pipe.from_tracing(
+bert_pipe = Pipe.from_tracing(
     model,
     num_chunks=state.num_processes,
-    example_args=(),
-    example_kwargs=example_inputs,
+    example_args=(input_ids,),
 )
 
 if state.is_main_process:
@@ -71,32 +71,30 @@ if state.is_main_process:
     def get_number_of_params(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    for i, sm in enumerate(t5_pipe.split_gm.children()):
+    for i, sm in enumerate(bert_pipe.split_gm.children()):
         print(f"Pipeline stage {i} {get_number_of_params(sm) // 10 ** 6}M params")
 
 # Verify we created two stages
 # Create schedule runtime
 stage = PipelineStage(
-    t5_pipe,
+    bert_pipe,
     state.local_process_index,
     device=state.device,
 )
 
 if state.is_local_main_process:
-    args = (
-        example_inputs["input_ids"].contiguous(),
-        example_inputs["decoder_input_ids"].contiguous(),
-    )
+    args = input_ids
 else:
-    args = ()
+    args = None
 
 # Run
+
 # Take an average of 5 times
 times = []
 for _ in range(5):
     start_time = time.time()
     with torch.no_grad():
-        output = stage(*args)
+        output = stage(args)
     end_time = time.time()
     times.append(end_time - start_time)
 

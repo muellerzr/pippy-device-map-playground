@@ -31,16 +31,25 @@ def add_split_points(t5, nranks):
     # Split encoder
     for i in range(1, t5.config.num_layers // layers_per_rank):
         annotate_split_points(
-            t5, {f'encoder.block.{i * layers_per_rank}': PipeSplitWrapper.SplitPoint.BEGINNING})
+            t5,
+            {
+                f"encoder.block.{i * layers_per_rank}": PipeSplitWrapper.SplitPoint.BEGINNING
+            },
+        )
         nstages += 1
     # Split at the boundary of encoder and decoder
     annotate_split_points(
-        t5, {f'decoder.embed_tokens': PipeSplitWrapper.SplitPoint.BEGINNING})
+        t5, {"decoder.embed_tokens": PipeSplitWrapper.SplitPoint.BEGINNING}
+    )
     nstages += 1
     # Split decoder
     for i in range(1, t5.config.num_decoder_layers // layers_per_rank):
         annotate_split_points(
-            t5, {f'decoder.block.{i * layers_per_rank}': PipeSplitWrapper.SplitPoint.BEGINNING})
+            t5,
+            {
+                f"decoder.block.{i * layers_per_rank}": PipeSplitWrapper.SplitPoint.BEGINNING
+            },
+        )
         nstages += 1
     assert nstages == nranks, f"nstages = {nstages} nranks = {nranks}"
 
@@ -52,7 +61,6 @@ def run(args):
 
     # Create model
     model_class = T5ForConditionalGeneration
-    model_name = "T5ForConditionalGeneration"
     t5 = model_class(config)
     t5.to(args.device)
     t5.eval()
@@ -66,7 +74,7 @@ def run(args):
     input = torch.randint(
         low=0,
         high=config.vocab_size,
-        size = (2, 1024), # bs x seq_len
+        size=(2, 1024),  # bs x seq_len
         device=args.device,
         dtype=torch.int64,
         requires_grad=False,
@@ -98,6 +106,7 @@ def run(args):
 
     # Run
     import time
+
     times = []
     for _ in range(5):
         start_time = time.time()
@@ -111,21 +120,27 @@ def run(args):
         times.append(end_time - start_time)
 
     if args.rank == args.world_size - 1:
-        print(f'Time of first pass: {times[0]}')
-        print(f'Total elapsed time: {sum(times[1:]) / len(times[1:])}')
+        print(f"Time of first pass: {times[0]}")
+        print(f"Total elapsed time: {sum(times[1:]) / len(times[1:])}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--world_size', type=int, default=int(os.getenv("WORLD_SIZE", 4)))
-    parser.add_argument('--rank', type=int, default=int(os.getenv("RANK", -1)))
-    parser.add_argument('--master_addr', type=str, default=os.getenv('MASTER_ADDR', 'localhost'))
-    parser.add_argument('--master_port', type=str, default=os.getenv('MASTER_PORT', '29500'))
-    parser.add_argument('--schedule', type=str, default="FillDrain")
-    parser.add_argument('--cuda', type=int, default=int(torch.cuda.is_available()))
+    parser.add_argument(
+        "--world_size", type=int, default=int(os.getenv("WORLD_SIZE", 4))
+    )
+    parser.add_argument("--rank", type=int, default=int(os.getenv("RANK", -1)))
+    parser.add_argument(
+        "--master_addr", type=str, default=os.getenv("MASTER_ADDR", "localhost")
+    )
+    parser.add_argument(
+        "--master_port", type=str, default=os.getenv("MASTER_PORT", "29500")
+    )
+    parser.add_argument("--schedule", type=str, default="FillDrain")
+    parser.add_argument("--cuda", type=int, default=int(torch.cuda.is_available()))
     parser.add_argument("--chunks", type=int, default=4)
-    parser.add_argument('--batch_size', type=int, default=4)
-    parser.add_argument('--batches', type=int, default=1)
+    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batches", type=int, default=1)
 
     args = parser.parse_args()
 

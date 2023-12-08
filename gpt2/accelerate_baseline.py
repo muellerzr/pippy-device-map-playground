@@ -1,16 +1,16 @@
 # Calculates time it takes for device_map to run sequentially through the batch and model
 # To compare with `PiPPy`, it will run on two batches individually
 
-from transformers import BertForMaskedLM, BertConfig
+from transformers import GPT2ForSequenceClassification, GPT2Config
 from accelerate import infer_auto_device_map, dispatch_model
 from accelerate.utils import calculate_maximum_sizes, convert_bytes
 import math
-import time
 import torch
+import time
 
-config = BertConfig()
+config = GPT2Config()
 
-model = BertForMaskedLM(config)
+model = GPT2ForSequenceClassification(config)
 
 model_size, shared = calculate_maximum_sizes(model)
 # Returns 242026496, (65798144, ['shared'])
@@ -41,7 +41,7 @@ example_inputs = []
 input = torch.randint(
     low=0,
     high=config.vocab_size,
-    size=(1, 512),  # bs x seq_len
+    size=(1, 1024),  # bs x seq_len
     device="cuda",
     dtype=torch.int64,
     requires_grad=False,

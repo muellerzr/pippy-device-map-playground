@@ -3,11 +3,11 @@
 To run:
 
 ```bash
-python baseline.py
+python accelerate_baseline.py
 ```
 
 ```bash
-torchrun --nproc-per-node 2 pippy.py
+torchrun --nproc-per-node 2 pippy_baseline.py
 ```
 
 ```bash

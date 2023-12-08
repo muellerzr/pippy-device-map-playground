@@ -1,5 +1,6 @@
 # Attempting to use `pippy` with `bert` and `accelerate`'s `infer_device_map`
 import math
+import time
 import torch
 from accelerate import infer_auto_device_map, PartialState
 from accelerate.utils import calculate_maximum_sizes, convert_bytes
@@ -22,15 +23,15 @@ model_size, shared = calculate_maximum_sizes(model)
 memory = (model_size + shared[0]) / 2
 memory = convert_bytes(memory)
 # Returns 115.41 MB
-value, ending = memory.split(' ')
+value, ending = memory.split(" ")
 
 # Add a chunk to deal with err:
 # cannot access free variable 'chunk_args_list' where it is not associated with a value in enclosing scope
 memory = math.ceil(float(value)) * 1.1
-memory = f'{memory} {ending}'
+memory = f"{memory} {ending}"
 device_map = infer_auto_device_map(
-    model, 
-    max_memory={0: memory, 1: memory}, 
+    model,
+    max_memory={0: memory, 1: memory},
     clean_result=False,
     no_split_module_classes=model._no_split_modules,
 )
@@ -45,7 +46,7 @@ annotate_split_points(model, {split_point: PipeSplitWrapper.SplitPoint.BEGINNING
 input = torch.randint(
     low=0,
     high=config.vocab_size,
-    size = (2, 512), # bs x seq_len
+    size=(2, 512),  # bs x seq_len
     device=state.device,
     dtype=torch.int64,
     requires_grad=False,
@@ -60,14 +61,16 @@ model.eval()
 
 # Create a pipeline stage from the model
 bert_pipe = Pipe.from_tracing(
-    model, 
+    model,
     num_chunks=state.num_processes,
-    example_args=(input_ids, ),
+    example_args=(input_ids,),
 )
 
 if state.is_main_process:
+
     def get_number_of_params(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
     for i, sm in enumerate(bert_pipe.split_gm.children()):
         print(f"Pipeline stage {i} {get_number_of_params(sm) // 10 ** 6}M params")
 
@@ -85,8 +88,7 @@ else:
     args = None
 
 # Run
-import torch
-import time
+
 # Take an average of 5 times
 times = []
 for _ in range(5):
@@ -99,5 +101,5 @@ for _ in range(5):
 # First `n` values in output are the model outputs
 if output is not None:
     output = torch.stack(tuple(output[0]))
-    print(f'Time of first pass: {times[0]}')
-    print(f'Total elapsed time: {sum(times[1:]) / len(times[1:])}')
+    print(f"Time of first pass: {times[0]}")
+    print(f"Total elapsed time: {sum(times[1:]) / len(times[1:])}")

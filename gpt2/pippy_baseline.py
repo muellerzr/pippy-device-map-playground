@@ -6,38 +6,41 @@
 import argparse
 import os
 import time
-
 import torch
 import torch.distributed as dist
 
 from pippy.IR import Pipe, PipeSplitWrapper, annotate_split_points
 from pippy.PipelineStage import PipelineStage
 
-from transformers import BertForMaskedLM, BertConfig
+from transformers import GPT2ForSequenceClassification, GPT2Config
 
 
 def get_number_of_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def add_split_points(bert, nranks):
-    layers_per_rank = bert.config.num_hidden_layers // nranks
-    for i in range(1, nranks):
+def add_split_points(gpt2, nranks):
+    decoders_per_rank = (gpt2.config.n_layer + nranks - 1) // nranks
+    print(f"decoders_per_rank = {decoders_per_rank}")
+    nstages = 1
+    for i in range(1, gpt2.config.n_layer // decoders_per_rank):
         annotate_split_points(
-            bert,
+            gpt2,
             {
-                f"bert.encoder.layer.{i * layers_per_rank}": PipeSplitWrapper.SplitPoint.BEGINNING
+                f"transformer.h.{i * decoders_per_rank}": PipeSplitWrapper.SplitPoint.BEGINNING
             },
         )
+        nstages += 1
+    assert nstages == nranks, f"nstages = {nstages} nranks = {nranks}"
 
 
 def run(args):
     # Model configs
-    config = BertConfig()
+    config = GPT2Config()
     print("Using device:", args.device)
 
     # Create model
-    model_class = BertForMaskedLM
+    model_class = GPT2ForSequenceClassification
     bert = model_class(config)
     bert.to(args.device)
     bert.eval()
@@ -51,7 +54,7 @@ def run(args):
     input = torch.randint(
         low=0,
         high=config.vocab_size,
-        size=(2, 512),  # bs x seq_len
+        size=(2, 1024),  # bs x seq_len
         device=args.device,
         dtype=torch.int64,
         requires_grad=False,

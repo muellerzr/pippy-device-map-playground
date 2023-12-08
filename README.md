@@ -20,13 +20,19 @@ two 4090's so a batch size of 2 (or 1 per each GPU when split).
 When `Accelerate` was used, a device map was generated that could roughly split
 the model evenly between each GPU
 
-### Bert (`bert-base-cased`)
+### Bert
 
 | Time Elapsed (s) | Accelerate/Sequential | PiPPy Example | PiPPy + Accelerate (automated) |
 |---|---|---|---|
 | First batch | 0.2478 | 0.1966 | 0.1683 |
 | Avg for the rest | 0.0108 | 0.00336 | 0.00218 |
 
+### GPT2
+
+| Time Elapsed (s) | Accelerate/Sequential | PiPPy Example | PiPPy + Accelerate (automated) |
+|---|---|---|---|
+| First batch | 0.2745 | 0.2216 | 0.2365 |
+| Avg for the rest | 0.0341 | 0.0119 | 0.0134 |
 
 ### T5
 
