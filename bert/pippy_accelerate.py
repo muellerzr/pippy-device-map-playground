@@ -56,7 +56,7 @@ input_ids = example_inputs["input_ids"]
 
 # input_ids = input_ids.to(state.device)
 model = dispatch_model(model, device_map)
-remove_hook_from_submodules(model)
+# remove_hook_from_submodules(model)
 
 # Create split points for the model based on the device map
 annotate_split_points(model, {split_point: PipeSplitWrapper.SplitPoint.BEGINNING})
