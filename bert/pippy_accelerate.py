@@ -3,12 +3,14 @@ import math
 import time
 import torch
 from accelerate import infer_auto_device_map, PartialState, dispatch_model
-from accelerate.utils import calculate_maximum_sizes, convert_bytes
+from accelerate.utils import calculate_maximum_sizes, convert_bytes, set_seed
 from accelerate.hooks import remove_hook_from_submodules
 from transformers import BertForMaskedLM, BertConfig
 
 from pippy.IR import Pipe, PipeSplitWrapper, annotate_split_points
 from pippy.PipelineStage import PipelineStage
+
+set_seed(42)
 
 # Generate a distributed environment
 state = PartialState()
@@ -38,6 +40,7 @@ device_map = infer_auto_device_map(
 split_point = next(k for k, v in device_map.items() if v == 1)
 
 # Move model to `device` and set to evaluation without using Hooks, causes issue with tracing
+model.to("cuda")
 model.eval()
 
 # Input configs
@@ -46,7 +49,7 @@ input = torch.randint(
     low=0,
     high=config.vocab_size,
     size=(2, 512),  # bs x seq_len
-    device="cpu",
+    device="cuda",
     dtype=torch.int64,
     requires_grad=False,
 )
@@ -55,7 +58,7 @@ example_inputs = {"input_ids": input}
 input_ids = example_inputs["input_ids"]
 
 # input_ids = input_ids.to(state.device)
-model = dispatch_model(model, device_map)
+# model = dispatch_model(model, device_map)
 # remove_hook_from_submodules(model)
 
 # Create split points for the model based on the device map
@@ -94,25 +97,29 @@ else:
 
 # Take an average of 5 times
 # Measure first batch
-torch.cuda.synchronize()
-start_time = time.time()
+# torch.cuda.synchronize()
+# start_time = time.time()
 with torch.no_grad():
     output = stage(args)
-torch.cuda.synchronize()
-end_time = time.time()
-first_batch = end_time - start_time
+if output is not None:
+    print(output)
+# torch.cuda.synchronize()
+# end_time = time.time()
+# first_batch = end_time - start_time
 
 # Now that CUDA is init, measure after
-torch.cuda.synchronize()
-start_time = time.time()
-for i in range(5):
-    with torch.no_grad():
-        output = stage(args)
-torch.cuda.synchronize()
-end_time = time.time()
+# torch.cuda.synchronize()
+# start_time = time.time()
+# for i in range(5):
+#     with torch.no_grad():
+#         output = stage(args)
+# torch.cuda.synchronize()
+# end_time = time.time()
 
-# First `n` values in output are the model outputs
-if output is not None:
-    output = torch.stack(tuple(output[0]))
-    print(f"Time of first pass: {first_batch}")
-    print(f"Average time per batch: {(end_time - start_time)/5}")
+# # First `n` values in output are the model outputs
+# if output is not None:
+#     print(output)
+    # output = torch.stack(tuple(output[0]))
+    # print(f"Time of first pass: {first_batch}")
+    # print(f"Average time per batch: {(end_time - start_time)/5}")
+    # print(output)

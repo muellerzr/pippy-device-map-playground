@@ -3,10 +3,12 @@
 
 from transformers import BertForMaskedLM, BertConfig
 from accelerate import infer_auto_device_map, dispatch_model
-from accelerate.utils import calculate_maximum_sizes, convert_bytes
+from accelerate.utils import calculate_maximum_sizes, convert_bytes, set_seed
 import math
 import time
 import torch
+
+set_seed(42)
 
 config = BertConfig()
 
@@ -39,7 +41,7 @@ example_inputs = []
 input = torch.randint(
     low=0,
     high=config.vocab_size,
-    size=(1, 512),  # bs x seq_len
+    size=(2, 512),  # bs x seq_len
     device="cuda",
     dtype=torch.int64,
     requires_grad=False,
@@ -47,15 +49,14 @@ input = torch.randint(
 
 example_inputs = {"input_ids": input}
 
-example_inputs = [example_inputs, example_inputs]
 
 times = []
 for _ in range(5):
     start_time = time.time()
-    for input in example_inputs:
-        with torch.no_grad():
-            output = model(**input)
+    with torch.no_grad():
+        output = model(**example_inputs)
     end_time = time.time()
     times.append(end_time - start_time)
 print(f"Time of first pass: {times[0]}")
 print(f"Time taken for sequential run: {sum(times[1:]) / len(times[1:])}")
+print(output)
