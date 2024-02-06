@@ -29,6 +29,9 @@ input = torch.randint(
 # number of total GPUs available if it fits on one GPU
 model = prepare_pippy(model, split_points="auto", example_args=(input,))
 
+# Move the inputs to the first device
+input = input.to("cuda:0")
+
 # Take an average of 5 times
 # Measure first batch
 torch.cuda.synchronize()
