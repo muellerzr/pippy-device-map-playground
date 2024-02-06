@@ -20,3 +20,23 @@ One can expect that PiPPy will outperform native model parallism by a multiplica
 
 Below are some benchmarks we have found when using the accelerate-pippy integration for a few models when running on 2x4090's:
 
+### Bert
+
+|  | Accelerate/Sequential | PiPPy + Accelerate |
+|---|---|---|
+| First batch | 0.2137s | 0.3119s |
+| Average of 5 batches | 0.0099s | **0.0062s** |
+
+### GPT2
+
+|  | Accelerate/Sequential | PiPPy + Accelerate |
+|---|---|---|
+| First batch | 0.1959s | 0.4189s |
+| Average of 5 batches | 0.0205s | **0.0126s** |
+
+### T5
+
+|  | Accelerate/Sequential | PiPPy + Accelerate |
+|---|---|---|
+| First batch | 0.2789s | 0.3809s |
+| Average of 5 batches | 0.0198s | **0.0166s** |
