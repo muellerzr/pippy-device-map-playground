@@ -1,14 +1,11 @@
 import time
 import torch
-from accelerate import PartialState, prepare_pippy
+from accelerate import prepare_pippy
 from accelerate.utils import set_seed
 from transformers import AutoModelForMaskedLM
 
 # Set the random seed to have reproducable outputs
 set_seed(42)
-
-# Generate a distributed environment
-state = PartialState()
 
 # Create an example model
 model = AutoModelForMaskedLM.from_pretrained("bert-base-uncased")
@@ -20,7 +17,7 @@ input = torch.randint(
     low=0,
     high=model.config.vocab_size,
     size=(2, 512),  # bs x seq_len
-    device=state.device,
+    device="cpu",
     dtype=torch.int64,
     requires_grad=False,
 )

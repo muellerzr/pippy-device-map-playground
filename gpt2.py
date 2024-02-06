@@ -1,15 +1,12 @@
 # Attempting to use `pippy` with `bert` and `accelerate`'s `infer_device_map`
 import time
 import torch
-from accelerate import PartialState, prepare_pippy
+from accelerate import prepare_pippy
 from accelerate.utils import set_seed
 from transformers import AutoModelForSequenceClassification
 
 # Set the random seed to have reproducable outputs
 set_seed(42)
-
-# Generate a distributed environment
-state = PartialState()
 
 # Create an example model
 model = AutoModelForSequenceClassification.from_pretrained("gpt2")
