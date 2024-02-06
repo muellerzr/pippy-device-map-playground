@@ -41,7 +41,10 @@ args = (
     example_inputs["decoder_input_ids"].to("cuda:0")
 )
 
-# Take an average of 5 times
+# Warm up (NCCL init, etc)
+with torch.no_grad():
+    output = model(*args)
+
 # Measure first batch
 torch.cuda.synchronize()
 start_time = time.time()

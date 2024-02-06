@@ -32,7 +32,10 @@ model = prepare_pippy(model, split_points="auto", example_args=(input,))
 # Move the inputs to the first device
 input = input.to("cuda:0")
 
-# Take an average of 5 times
+# Warm up (NCCL init, etc)
+with torch.no_grad():
+    output = model(input)
+
 # Measure first batch
 torch.cuda.synchronize()
 start_time = time.time()
