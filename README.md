@@ -1,42 +1,22 @@
 # PiPPy device map playground
 
-## Install
+This repo contains a variety of tutorials for using the [PiPPy](https://github.com/PyTorch/PiPPy) pipeline parallelism library with accelerate. You will find examples covering:
 
-Requires nightly `torch` build and `pippy` to be installed:
+1. How to trace the model using `accelerate.prepare_pippy`
+2. How to specify inputs based on what the model expects (when to use `kwargs`, `args`, and such)
+3. How to gather the results at the end.
 
+## Installation
+
+This requires the `main` branch of accelerate (or a version at least 0.27.0) and  `pippy` version of 0.2.0 or greater. Please install using `pip install .` to pull from the `setup.py` in this repo, or run manually:
+
+```bash
+pip install 'accelerate>=0.27.0' 'torchpippy>=0.2.0'
 ```
-conda install pytorch pytorch-cuda=12.1 -c pytorch-nightly -c nvidia
-```
 
-```
-pip install git+https://github.com/pytorch/PiPPy accelerate transformers
-```
+## General speedups
 
-## Results
+One can expect that PiPPy will outperform native model parallism by a multiplicative factor since all GPUs are running at all times with inputs, rather than one input being passed through a GPU at a time waiting for the prior to finish. 
 
-Tests were ran with a batch size of `n_gpus`. In this case they were ran on 
-two 4090's so a batch size of 2 (or 1 per each GPU when split).
+Below are some benchmarks we have found when using the accelerate-pippy integration for a few models when running on 2x4090's:
 
-When `Accelerate` was used, a device map was generated that could roughly split
-the model evenly between each GPU
-
-### Bert
-
-| Time Elapsed (s) | Accelerate/Sequential | PiPPy Example | PiPPy + Accelerate (automated) |
-|---|---|---|---|
-| First batch | 0.2478 | 0.1732 | 0.1743 |
-| Avg for five following | 0.0108 | 0.0022 | 0.0064 |
-
-### GPT2
-
-| Time Elapsed (s) | Accelerate/Sequential | PiPPy Example | PiPPy + Accelerate (automated) |
-|---|---|---|---|
-| First batch | 0.2745 | 0.2146 | 0.2216 |
-| Avg for five following | 0.0341 | 0.0117 | 0.0136 |
-
-### T5
-
-| Time Elapsed (s) | Accelerate/Sequential | PiPPy Example | PiPPy + Accelerate (automated) |
-|---|---|---|---|
-| First batch | 0.2986 | 0.1961 | 0.2608 |
-| Avg for five following | 0.03167 | 0.01056 | 0.0167 |
